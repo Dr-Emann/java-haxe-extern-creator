@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -123,8 +124,7 @@ public class ExternWriter {
 	public StringBuilder buildMethods(final ClassVO theClass)
 	{
 		StringBuilder builder = new StringBuilder();
-		HashMap<String, List<String>> existingMethods = new HashMap<>();
-		String methodString = "";
+		HashMap<String, List<Method>> existingMethods = new HashMap<>();
 		for(int i=0;i<theClass.methods.length;i++)
 		{
 			Method method = theClass.methods[i];
@@ -133,78 +133,82 @@ public class ExternWriter {
 			if(method.getName().equals("<init>"))
 				method.setName("new");
 			
-			StringBuilder methodArgsStringBuilder = new StringBuilder();
-			
-			for(int j=0;j<method.parameters.length; j++)
-			{
-				String paramName = "arg"+j;
-				String paramType = method.parameters[j];
-				paramType = getType(paramType);
-				methodArgsStringBuilder.append(String.format("%s:%s,", paramName, paramType));
-			}
-			
-			String methodArgumentString;
-			if(method.parameters.length != 0)
-				methodArgumentString = methodArgsStringBuilder.substring(0, methodArgsStringBuilder.length()-1);
-			else
-				methodArgumentString = methodArgsStringBuilder.toString();
-			
-			String typeMethodString = "";
-			if(method.typeParameterNames!= null)
-			{
-				for(int j=0;j<method.typeParameterNames.length; j++)
-				{
-					String paramName = method.typeParameterNames[j];
-					String paramType = getType(method.typeParameterTypes[j]);
-
-					typeMethodString += String.format("%s:%s,", paramName, paramType);
-				}
-			}
-
-			if(typeMethodString.length() != 0)
-			{
-				typeMethodString = typeMethodString.substring(0, typeMethodString.length()-1);
-			}
-			
-			List<String> methodsNamed;
-			
-			String methodReturnType = getType(method.returnType);
+			List<Method> methodsNamed;
 			
 			if(!existingMethods.containsKey(method.getName()))
 			{
-				if(method.typeParameterNames!=null && method.typeParameterNames.length >0)
-				{
-					methodString = String.format("%s %s<%s>(%s):%s;", method.accessString(), method.getName(), typeMethodString, methodArgumentString, methodReturnType);
-				}
-				else
-				{
-					methodString = String.format("%s %s(%s):%s;", method.accessString(), method.getName(), methodArgumentString, methodReturnType);
-				}
 				methodsNamed = new ArrayList<>();
 				existingMethods.put(method.getName(), methodsNamed);
 			}
 			else
 			{
 				methodsNamed = existingMethods.get(method.getName());
-				if(method.typeParameterNames == null || method.typeParameterNames.length == 0)
-				{
-					methodString = String.format("@:overload(function(%s):%s{})", methodArgumentString, methodReturnType);
-				}
-				else
-				{
-					methodString = String.format("@:overload(function(%s):%s{})", methodArgumentString, methodReturnType); //TODO: Replace parameters with Dynamic
-					System.out.println("overloading a function with parameters "+methodString);
-				}
 			}
 			
-			methodsNamed.add(methodString);
+			methodsNamed.add(method);
 		}
 		
-		for(List<String> value : existingMethods.values())
+		for(List<Method> value : existingMethods.values())
 		{
-			for(int i=value.size()-1; i>=0; i--)
+			Collections.sort(value);
+			for(int i=0; i<value.size(); i++)
 			{
-				builder.append(String.format("\t%s%n", value.get(i)));
+				Method method = value.get(i);
+				String methodString;
+				String methodReturnType = getType(method.returnType);
+				StringBuilder methodArgsStringBuilder = new StringBuilder();
+				
+				for(int j=0;j<method.parameters.length; j++)
+				{
+					String paramName = "arg"+j;
+					String paramType = method.parameters[j];
+					paramType = getType(paramType);
+					methodArgsStringBuilder.append(String.format("%s:%s,", paramName, paramType));
+				}
+				
+				String methodArgumentString;
+				if(method.parameters.length != 0)
+					methodArgumentString = methodArgsStringBuilder.substring(0, methodArgsStringBuilder.length()-1);
+				else
+					methodArgumentString = methodArgsStringBuilder.toString();
+				
+				String typeMethodString = "";
+				if(method.typeParameterNames!= null)
+				{
+					for(int j=0;j<method.typeParameterNames.length; j++)
+					{
+						String paramName = method.typeParameterNames[j];
+						String paramType = getType(method.typeParameterTypes[j]);
+
+						typeMethodString += String.format("%s:%s,", paramName, paramType);
+					}
+				}
+
+				if(typeMethodString.length() != 0)
+				{
+					typeMethodString = typeMethodString.substring(0, typeMethodString.length()-1);
+				}
+				
+				if(i!= value.size()-1)
+				{
+					methodString = String.format("@:overload(function(%s):%s{})", methodArgumentString, methodReturnType);
+					if(method.typeParameterNames != null && method.typeParameterNames.length != 0)
+					{
+						System.out.println("overloading a function with parameters "+methodString);//TODO: Replace parameters with Dynamic
+					}
+				}
+				else //last
+				{
+					if(method.typeParameterNames!=null && method.typeParameterNames.length >0)
+					{
+						methodString = String.format("%s %s<%s>(%s):%s;", method.accessString(), method.getName(), typeMethodString, methodArgumentString, methodReturnType);
+					}
+					else
+					{
+						methodString = String.format("%s %s(%s):%s;", method.accessString(), method.getName(), methodArgumentString, methodReturnType);
+					}
+				}
+				builder.append(String.format("\t%s%n", methodString));
 			}
 			builder.append(String.format("%n"));
 		}
