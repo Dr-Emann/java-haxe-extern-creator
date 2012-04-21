@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 import org.freeinternals.classfile.core.MethodInfo;
 
-public class Method implements Accessable {
+public class Method implements Accessable, Comparable<Method> {
 	private int accessFlags;
 	private String name;
 	public String[] parameters;
@@ -120,5 +120,32 @@ public class Method implements Accessable {
 	@Override
 	public boolean isPublic() {
 		return (this.accessFlags & MethodInfo.ACC_PUBLIC)!=0;
+	}
+
+	@Override
+	public int compareTo(Method other) {
+		int nameCompare = this.getName().compareTo(other.getName());
+		if(nameCompare != 0)
+			return nameCompare;
+		
+		if(this.parameters.length != other.parameters.length)
+			return this.parameters.length - other.parameters.length;
+		
+		if(this == other)
+			return 0;
+		
+		for(int i=0;i<this.parameters.length;i++)
+		{
+			String thisParam = this.parameters[i];
+			String otherParam = other.parameters[i];
+			
+			boolean thisIsDynamic = thisParam.equals("Dynamc")||thisParam.equals("java.lang.Object");
+			boolean otherIsDynamic = otherParam.equals("Dynamic")||otherParam.equals("java.lang.Object");
+			
+			if(thisIsDynamic && !otherIsDynamic) return 1;
+			if(!thisIsDynamic && otherIsDynamic) return -1;
+		}
+		
+		return 0;
 	}
 }
