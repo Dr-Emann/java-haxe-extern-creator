@@ -82,16 +82,24 @@ public class ExternWriter {
 		builder.append(String.format("import java.StdTypes;%n"));
 		
 		StringBuilder classParameters = new StringBuilder();
-		for(int i=0;i<theClass.classParameterNames.length; i++)
+		if(theClass.classParameterNames != null && theClass.classParameterNames.length > 0)
 		{
-			String name = theClass.classParameterNames[i];
-			String type = theClass.classParameterTypes[i];
-			type = getType(type);
-			classParameters.append(String.format("%s:%s,", name, type));
+			for(int i=0;i<theClass.classParameterNames.length; i++)
+			{
+				String name = theClass.classParameterNames[i];
+				String type = theClass.classParameterTypes[i];
+				type = getType(type);
+				classParameters.append(String.format("%s:%s,", name, type));
+			}
+			classParameters.deleteCharAt(classParameters.length()-1);
+			
+			builder.append(String.format("extern class %s<%s>%n", theClass.className, classParameters.toString()));
 		}
-		classParameters.deleteCharAt(classParameters.length()-1);
+		else
+		{
+			builder.append(String.format("extern class %s%n", theClass.className));
+		}
 		
-		builder.append(String.format("extern class %s<%s>%n", theClass.className, classParameters.toString()));
 		builder.append(String.format("{%n"));
 		
 		builder.append(buildFields(theClass));
@@ -115,7 +123,7 @@ public class ExternWriter {
 			String accessString = field.accessString();
 			String name = field.getName();
 			String type = getType(field.getType());
-			builder.append(String.format("\t%s %s:%s;%n",accessString, name, type));
+			builder.append(String.format("\t%s var %s:%s;%n",accessString, name, type));
 		}
 		
 		return builder;
@@ -201,11 +209,11 @@ public class ExternWriter {
 				{
 					if(method.typeParameterNames!=null && method.typeParameterNames.length >0)
 					{
-						methodString = String.format("%s %s<%s>(%s):%s;", method.accessString(), method.getName(), typeMethodString, methodArgumentString, methodReturnType);
+						methodString = String.format("%s function %s<%s>(%s):%s;", method.accessString(), method.getName(), typeMethodString, methodArgumentString, methodReturnType);
 					}
 					else
 					{
-						methodString = String.format("%s %s(%s):%s;", method.accessString(), method.getName(), methodArgumentString, methodReturnType);
+						methodString = String.format("%s function %s(%s):%s;", method.accessString(), method.getName(), methodArgumentString, methodReturnType);
 					}
 				}
 				builder.append(String.format("\t%s%n", methodString));
