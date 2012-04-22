@@ -98,11 +98,11 @@ public class ExternWriter {
 			}
 			classParameters.deleteCharAt(classParameters.length()-1);
 			
-			builder.append(String.format("extern %s %s<%s>%n", classOrInterface, theClass.className, classParameters.toString()));
+			builder.append(String.format("extern %s %s<%s> %s%n", classOrInterface, theClass.className, classParameters.toString(), buildExtensions(theClass)));
 		}
 		else
 		{
-			builder.append(String.format("extern %s %s%n", classOrInterface, theClass.className));
+			builder.append(String.format("extern %s %s %s%n", classOrInterface, theClass.className, buildExtensions(theClass)));
 		}
 		
 		builder.append(String.format("{%n"));
@@ -134,6 +134,29 @@ public class ExternWriter {
 		return builder;
 		
 	}
+	
+	public StringBuilder buildExtensions(final ClassVO theClass)
+	{
+		final StringBuilder builder = new StringBuilder();
+		final String superClass = getType(theClass.superClass);
+		if( !superClass.equals("Dynamic"))
+		{
+			builder.append(" extends " + superClass);
+		}
+		if(theClass.interfaces != null && theClass.interfaces.length > 0)
+		{
+			builder.append(" implements ");
+			for(String curInterface : theClass.interfaces)
+			{
+				String interfaceStr = getType(curInterface);
+				builder.append(interfaceStr);
+				builder.append(", ");
+			}
+			builder.setLength(builder.length()-2);
+		}
+		return builder;
+	}
+	
 	public StringBuilder buildMethods(final ClassVO theClass)
 	{
 		StringBuilder builder = new StringBuilder();

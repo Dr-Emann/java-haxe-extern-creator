@@ -63,7 +63,7 @@ public class ClassFileParser {
 	{
 		ClassVO vo = new ClassVO();
 		
-		AbstractCPInfo[] cpool = classFile.getConstantPool();
+		final AbstractCPInfo[] cpool = classFile.getConstantPool();
 		
 		//Get this
 		ConstantClassInfo thisClass = (ConstantClassInfo)cpool[classFile.getThisClass().getValue()];
@@ -71,14 +71,14 @@ public class ClassFileParser {
 		
 		//Get super
 		ConstantClassInfo superClass = (ConstantClassInfo) cpool[classFile.getSuperClass().getValue()];
-		vo.superClass = getCString(cpool, superClass.getNameIndex());
+		vo.superClass = getCString(cpool, superClass.getNameIndex()).replace('/', '.').replace('$', '_');
 		
 		//Get interfaces
 		vo.interfaces = new String[classFile.getInterfacesCount().getValue()];
 		Interface[] interfaces = classFile.getInterfaces();
 		for(int i=0;i<vo.interfaces.length; i++)
 		{
-			vo.interfaces[i] = getClassName(cpool, interfaces[i].getValue());
+			vo.interfaces[i] = getClassName(cpool, interfaces[i].getValue()).replace('/', '.').replace('$', '_');
 		}
 		
 		vo.accessFlags = classFile.getAccessFlags().getValue();
