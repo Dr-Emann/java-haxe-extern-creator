@@ -1,76 +1,95 @@
 package net.zdremann;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-
-import net.zdremann.vo.ClassVO;
-import net.zdremann.vo.Field;
-import net.zdremann.vo.Method;
-
-import org.freeinternals.classfile.core.AbstractCPInfo;
-import org.freeinternals.classfile.core.AttributeExtended;
-import org.freeinternals.classfile.core.AttributeInfo;
-import org.freeinternals.classfile.core.ClassFile;
-import org.freeinternals.classfile.core.ClassFormatException;
-import org.freeinternals.classfile.core.ConstantClassInfo;
-import org.freeinternals.classfile.core.ConstantUtf8Info;
-import org.freeinternals.classfile.core.FieldInfo;
-import org.freeinternals.classfile.core.Interface;
-import org.freeinternals.classfile.core.MethodInfo;
+import java.io.FileFilter;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Main {
 
+	static ExecutorService exec = Executors.newFixedThreadPool(6);
+	static ExternWriter writer;
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		File source = null;
+		File destination = null;
+		if(args.length == 2)
+		{
+			source = new File(args[0]);
+			destination = new File(args[1]);
+		}
+		else
+		{
+			System.err.println("Please pass source and destination as parameters");
+			System.exit(1);
+		}
 		
-		String fileName = (args.length > 1)?args[1]:".\\bin\\tmp\\SecondGenericClass.class";
+		writer = new ExternWriter(destination);
 		
-		parseClassFile(fileName);
+		if(!source.exists())
+		{
+			System.err.println("Source location does not exist");
+			System.exit(1);
+		}
+		if(destination.isFile())
+		{
+			System.err.println("Destination is a file, not a directory");
+			System.exit(1);
+		}
+		if(!source.isDirectory())
+		{
+			if(!source.getName().endsWith(".class"))
+			{
+				System.err.println("Source is not a directory, or a class file");
+				System.exit(1);
+			}
+			exec.execute(new ClassParserRunnable(source, writer));
+		}
+		else
+		{
+			recurse_files(source);
+		}
 	}
 	
-	public static void parseClassFile(String fileName)
+	public static void recurse_files(File source)
 	{
-		File file = new File(fileName);
+		File[] classFiles = source.listFiles(new FileFilter() {
+			@Override
+			public boolean accept(File pathName) {
+				if(pathName.isFile() && pathName.getName().endsWith(".class"))
+					return true;
+				else
+					return false;
+			}
+		});
 		
-		ClassFileParser parser = new ClassFileParser();
+		File[] innerDirectories = source.listFiles(new FileFilter() {
+			@Override
+			public boolean accept(File pathname) {
+				if(pathname.isDirectory())
+					return true;
+				else
+					return false;
+			}
+		});
 		
-		try
+		for(File file : classFiles)
 		{
-			parser.readFile(file);
-		}
-		catch(FileNotFoundException fnfe)
-		{
-			fnfe.printStackTrace();
-			System.exit(1);
-		}
-		catch(IOException ioe)
-		{
-			ioe.printStackTrace();
-			System.exit(1);
-		}
-		catch(ClassFormatException cfe)
-		{
-			cfe.printStackTrace();
-			System.exit(1);
+			exec.execute(new ClassParserRunnable(file, writer));
 		}
 		
-		ClassVO vo = parser.parseClass();
-		ExternWriter writer = new ExternWriter("C:\\Users\\Zach\\Desktop\\tmp\\Files");
-		try
+		for(File direc : innerDirectories)
 		{
-			writer.writeClass(vo);
-		}
-		catch (IOException ioe)
-		{
-			ioe.printStackTrace();
-			System.exit(1);
+			final File directory = direc;
+			exec.execute(new Runnable() {
+				
+				@Override
+				public void run() {
+					recurse_files(directory);
+				}
+			});
 		}
 	}
-
 }
