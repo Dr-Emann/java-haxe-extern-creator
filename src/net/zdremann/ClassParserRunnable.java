@@ -47,6 +47,12 @@ public class ClassParserRunnable implements Runnable {
 		}
 		
 		final ClassVO data = parser.parseClass();
+		
+		if(!data.isPublic())
+		{
+			//Do not write private classes
+			return;
+		}
 		try
 		{
 			writer.writeClass(data);

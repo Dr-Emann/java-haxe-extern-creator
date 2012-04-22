@@ -19,6 +19,11 @@ public class ClassVO {
 	public String[] interfaces;
 	public Method[] methods;
 	public Field[] fields;
+	
+	public boolean isPublic()
+	{
+		return (accessFlags & AccessFlags.ACC_PUBLIC) != 0;
+	}
 	public boolean isInterface()
 	{
 		return (accessFlags & AccessFlags.ACC_INTERFACE) != 0;
