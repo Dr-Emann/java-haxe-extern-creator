@@ -67,7 +67,7 @@ public class ClassFileParser {
 		
 		//Get this
 		ConstantClassInfo thisClass = (ConstantClassInfo)cpool[classFile.getThisClass().getValue()];
-		vo.classNameAndPackage(getCString(cpool, thisClass.getNameIndex()).replace('/', '.'));
+		vo.classNameAndPackage(getCString(cpool, thisClass.getNameIndex()).replace('/', '.').replace('$', '_'));
 		
 		//Get super
 		ConstantClassInfo superClass = (ConstantClassInfo) cpool[classFile.getSuperClass().getValue()];
