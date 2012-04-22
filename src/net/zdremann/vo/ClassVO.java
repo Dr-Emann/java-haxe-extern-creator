@@ -6,7 +6,11 @@ import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.freeinternals.classfile.core.AccessFlags;
+import org.freeinternals.classfile.core.ClassFile;
+
 public class ClassVO {
+	public int accessFlags;
 	public String[] classParameterNames;
 	public String[] classParameterTypes;
 	public String className;
@@ -15,6 +19,10 @@ public class ClassVO {
 	public String[] interfaces;
 	public Method[] methods;
 	public Field[] fields;
+	public boolean isInterface()
+	{
+		return (accessFlags & AccessFlags.ACC_INTERFACE) != 0;
+	}
 	
 	public void classNameAndPackage(String inStr)
 	{

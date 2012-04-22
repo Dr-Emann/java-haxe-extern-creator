@@ -81,6 +81,8 @@ public class ClassFileParser {
 			vo.interfaces[i] = getClassName(cpool, interfaces[i].getValue());
 		}
 		
+		vo.accessFlags = classFile.getAccessFlags().getValue();
+		
 		AttributeInfo[] attrs = classFile.getAttributes();
 		for(AttributeInfo info : attrs)
 		{

@@ -86,6 +86,7 @@ public class ExternWriter {
 		builder.append(String.format("import java.StdTypes;%n"));
 		
 		StringBuilder classParameters = new StringBuilder();
+		String classOrInterface = (theClass.isInterface())?"interface":"class";
 		if(theClass.classParameterNames != null && theClass.classParameterNames.length > 0)
 		{
 			for(int i=0;i<theClass.classParameterNames.length; i++)
@@ -97,11 +98,11 @@ public class ExternWriter {
 			}
 			classParameters.deleteCharAt(classParameters.length()-1);
 			
-			builder.append(String.format("extern class %s<%s>%n", theClass.className, classParameters.toString()));
+			builder.append(String.format("extern %s %s<%s>%n", classOrInterface, theClass.className, classParameters.toString()));
 		}
 		else
 		{
-			builder.append(String.format("extern class %s%n", theClass.className));
+			builder.append(String.format("extern %s %s%n", classOrInterface, theClass.className));
 		}
 		
 		builder.append(String.format("{%n"));
