@@ -139,6 +139,10 @@ public class ClassFileParser {
 					int sigIndex = ((sigIndexRaw[0]&0xff)<<8)+(sigIndexRaw[1]&0xff);
 					cMethod.setDescriptor(getCString(cpool, sigIndex));
 				case "Code":
+				case "Deprecated":
+				case "RuntimeVisibleAnnotations":
+				case "Exceptions":
+				case "AnnotationDefault":
 					break;
 				default:
 					System.out.println("Attribute found: " + getCString(cpool, cInfo.getAttribute(j).getNameIndex()));
