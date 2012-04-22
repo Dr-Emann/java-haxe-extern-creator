@@ -42,6 +42,10 @@ public class ExternWriter {
 	{
 		baseDestination = new File(baseDestinationLocation);
 	}
+	public ExternWriter(File baseDestination)
+	{
+		this.baseDestination = baseDestination;
+	}
 	
 	public void writeClass(ClassVO theClass) throws IOException
 	{
