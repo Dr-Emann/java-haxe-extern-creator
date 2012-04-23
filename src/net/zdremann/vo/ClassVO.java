@@ -205,7 +205,7 @@ public class ClassVO {
 				pos++;
 			}
 			returnStr = s.toString();
-			returnStr = returnStr.replace('/', '.');
+			returnStr = returnStr.replace('/', '.').replace('$', '_');
 			break;
 		case '*':
 			returnStr = "java.lang.Object";

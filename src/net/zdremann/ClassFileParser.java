@@ -130,7 +130,7 @@ public class ClassFileParser {
 			MethodInfo cInfo = methods[i];
 			cMethod.setName(getCString(cpool, cInfo.getNameIndex()));
 			cMethod.setAccessFlags(cInfo.getAccessFlags());
-			cMethod.setDescriptor(getCString(cpool, cInfo.getDescriptorIndex()));
+			cMethod.setDescriptor(getCString(cpool, cInfo.getDescriptorIndex()).replace('/', '.').replace('$', '_'));
 			for(int j=0; j<cInfo.getAttributesCount(); j++)
 			{
 				switch(getCString(cpool, cInfo.getAttribute(j).getNameIndex()))
