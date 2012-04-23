@@ -6,8 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
 
 import net.zdremann.vo.ClassVO;
 import net.zdremann.vo.Field;
@@ -33,6 +31,11 @@ public class ClassFileParser {
 	{
 		
 	}
+	
+	public void readFile(byte[] byteArray) throws IOException, ClassFormatException
+	{
+		this.classFile = new ClassFile(byteArray);
+	}
 
 	public void readFile(File inFile) throws FileNotFoundException, IOException, ClassFormatException
 	{
@@ -44,7 +47,7 @@ public class ClassFileParser {
 			byte[] fileByteArray = new byte[(int)inFile.length()];
 			is.read(fileByteArray);
 			
-			classFile = new ClassFile(fileByteArray);
+			readFile(fileByteArray);
 		}
 		finally
 		{

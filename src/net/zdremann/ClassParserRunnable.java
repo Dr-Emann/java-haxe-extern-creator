@@ -11,6 +11,7 @@ import org.freeinternals.classfile.core.ClassFormatException;
 public class ClassParserRunnable implements Runnable {
 	
 	final File source;
+	final byte[] sourceArray;
 	final ExternWriter writer;
 	
 	public ClassParserRunnable(final File source, final File destination)
@@ -21,6 +22,14 @@ public class ClassParserRunnable implements Runnable {
 	{
 		this.source = source;
 		this.writer = writer;
+		sourceArray = null;
+	}
+	
+	public ClassParserRunnable(final byte[] sourceArray, final ExternWriter writer)
+	{
+		this.source = null;
+		this.writer = writer;
+		this.sourceArray = sourceArray;
 	}
 	
 	@Override
@@ -28,7 +37,10 @@ public class ClassParserRunnable implements Runnable {
 		ClassFileParser parser = new ClassFileParser();
 		try
 		{
-			parser.readFile(source);
+			if(sourceArray== null)
+				parser.readFile(source);
+			else
+				parser.readFile(sourceArray);
 		}
 		catch(FileNotFoundException fnfe)
 		{

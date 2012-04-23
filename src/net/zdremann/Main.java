@@ -2,8 +2,14 @@ package net.zdremann;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Enumeration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class Main {
 
@@ -40,12 +46,55 @@ public class Main {
 		}
 		if(!source.isDirectory())
 		{
-			if(!source.getName().endsWith(".class"))
+			if(source.getName().endsWith(".class"))
+			{
+				exec.execute(new ClassParserRunnable(source, writer));
+			}
+			else if(source.getName().endsWith(".jar"))
+			{
+				ZipFile zf = null;
+				try
+				{
+					zf = new ZipFile(source);
+					Enumeration<? extends ZipEntry> entries = zf.entries();
+					while(entries.hasMoreElements())
+					{
+						ZipEntry entry = entries.nextElement();
+						if(!entry.isDirectory() && entry.getName().endsWith(".class"))
+						{
+							InputStream is = zf.getInputStream(entry);
+							byte[] byteArray = new byte[(int)entry.getSize()];
+							is.read(byteArray);
+							exec.execute(new ClassParserRunnable(byteArray, writer));
+						}
+					}
+				}
+				catch(FileNotFoundException fnfe)
+				{
+					
+				}
+				catch(IOException ioe)
+				{
+					
+				}
+				finally
+				{
+					try
+					{
+						zf.close();
+					}
+					catch(Exception e)
+					{
+						
+					}
+				}
+			}
+			else
 			{
 				System.err.println("Source is not a directory, or a class file");
 				System.exit(1);
 			}
-			exec.execute(new ClassParserRunnable(source, writer));
+			
 		}
 		else
 		{

@@ -7,7 +7,8 @@ a list of [Haxe] (http://haxe.org/) external definitions.
 Useage
 -------------
 
-The program can be run using `java -jar haxe-extern.jar (input-directory) (output-directory)`.
+The program can be run using `java -jar haxe-extern.jar (input-directory) (output-directory)` or
+`java -jar haxe-extern.jar (input-jar) (output-directory)`.
 This will recursively find class files within `(input-directory)`, and create externs
 in `(output-directory)`. 
 
