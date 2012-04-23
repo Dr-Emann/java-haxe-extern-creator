@@ -25,6 +25,7 @@ public class ExternWriter {
 		HashMap<String, String> value = new HashMap<>();
 		value.put("java.lang.String", "String");
 		value.put("java.lang.Object", "Dynamic");
+		value.put("C", "Char16");
 		value.put("I", "Int");
 		value.put("S", "Int16");
 		value.put("B", "Int8");
