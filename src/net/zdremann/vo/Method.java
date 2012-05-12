@@ -124,16 +124,32 @@ public class Method implements Accessable, Comparable<Method> {
 
 	@Override
 	public int compareTo(Method other) {
+		// Quick check for equivalence
+		if(this == other)
+			return 0;
+		
+		// Sort by function name
 		int nameCompare = this.getName().compareTo(other.getName());
 		if(nameCompare != 0)
 			return nameCompare;
 		
+		// Sort static functions first
+		if(this.isStatic() && !other.isStatic())
+			return -1;
+		else if(!this.isStatic() && other.isStatic())
+		{
+			return 1;
+		}
+		
+		// Sort functions with more type parameters last
+		if(this.typeParameterTypes.length != other.typeParameterTypes.length)
+			return this.typeParameterTypes.length - other.typeParameterTypes.length;
+		
+		// Sort functions with more parameters last
 		if(this.parameters.length != other.parameters.length)
 			return this.parameters.length - other.parameters.length;
 		
-		if(this == other)
-			return 0;
-		
+		// Sort functions with dynamic parameters early in the type signature last
 		for(int i=0;i<this.parameters.length;i++)
 		{
 			String thisParam = this.parameters[i];
