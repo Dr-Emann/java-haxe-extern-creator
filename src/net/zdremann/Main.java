@@ -1,144 +1,103 @@
 package net.zdremann;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Enumeration;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+import java.util.concurrent.Future;
 
-public class Main {
+import com.sun.javadoc.*;
 
-	static ExecutorService exec = Executors.newFixedThreadPool(6);
-	static ExternWriter writer;
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		File source = null;
-		File destination = null;
-		if(args.length == 2)
+public class Main extends Doclet {
+	
+	private static File outputDir;
+	
+	public static boolean start(RootDoc root)
+	{
+		readOptions(root.options());
+		ClassDoc[] classes = root.classes();
+		List<Future<Void>> todo = new ArrayList<>();
+		for(ClassDoc clazz : classes)
 		{
-			source = new File(args[0]);
-			destination = new File(args[1]);
-		}
-		else
-		{
-			System.err.println("Please pass source and destination as parameters");
-			System.exit(1);
-		}
-		
-		writer = new ExternWriter(destination);
-		
-		if(!source.exists())
-		{
-			System.err.println("Source location does not exist");
-			System.exit(1);
-		}
-		if(destination.isFile())
-		{
-			System.err.println("Destination is a file, not a directory");
-			System.exit(1);
-		}
-		if(!source.isDirectory())
-		{
-			if(source.getName().endsWith(".class"))
+			if(clazz.containingClass()!= null)
 			{
-				exec.execute(new ClassParserRunnable(source, writer));
+				continue;
 			}
-			else if(source.getName().endsWith(".jar"))
+			PackageDoc pack = clazz.containingPackage();
+			String packs = pack.name().replace('.', File.separatorChar);
+			File output = new File(outputDir, packs);
+			output.mkdirs();
+			if(!output.exists())
 			{
-				ZipFile zf = null;
-				try
-				{
-					zf = new ZipFile(source);
-					Enumeration<? extends ZipEntry> entries = zf.entries();
-					while(entries.hasMoreElements())
-					{
-						ZipEntry entry = entries.nextElement();
-						if(!entry.isDirectory() && entry.getName().endsWith(".class"))
-						{
-							InputStream is = zf.getInputStream(entry);
-							byte[] byteArray = new byte[(int)entry.getSize()];
-							is.read(byteArray);
-							exec.execute(new ClassParserRunnable(byteArray, writer));
-						}
-					}
-				}
-				catch(FileNotFoundException fnfe)
-				{
-					
-				}
-				catch(IOException ioe)
-				{
-					
-				}
-				finally
-				{
-					try
-					{
-						zf.close();
-					}
-					catch(Exception e)
-					{
-						
-					}
-				}
+				throw new RuntimeException("Could not create required directory in output directory");
 			}
-			else
+			output = new File(output, clazz.name()+".hx");
+			OutputStream outputStream = null;
+			try
 			{
-				System.err.println("Source is not a directory, or a class file");
-				System.exit(1);
+				outputStream = new BufferedOutputStream(new FileOutputStream(output));
+			}
+			catch (Exception e)
+			{
+				throw new RuntimeException(e.getMessage());
 			}
 			
+			
+			ClassWriterCallable cwc = new ClassWriterCallable(clazz, outputStream);
+			todo.add(ClassWriterCallable.service.submit(cwc));
 		}
-		else
+		
+		for(Future<Void> future : todo)
 		{
-			recurse_files(source);
+			try{
+				future.get();
+			}
+			catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+		
+		return true;
+	}
+	
+	private static void readOptions(String[][] options) {
+		for (int i = 0; i < options.length; i++) {
+			String[] opt = options[i];
+			if (opt[0].equals("-output")) {
+				outputDir = new File(opt[1]);
+			}
 		}
 	}
 	
-	public static void recurse_files(File source)
-	{
-		File[] classFiles = source.listFiles(new FileFilter() {
-			@Override
-			public boolean accept(File pathName) {
-				if(pathName.isFile() && pathName.getName().endsWith(".class"))
-					return true;
-				else
+	public static boolean validOptions(String options[][], DocErrorReporter reporter) {
+		boolean foundOutputOption = false;
+		for (int i = 0; i < options.length; i++) {
+			String[] opt = options[i];
+			if (opt[0].equals("-output")) {
+				if (foundOutputOption) {
+					reporter.printError("Only one -output option allowed.");
 					return false;
-			}
-		});
-		
-		File[] innerDirectories = source.listFiles(new FileFilter() {
-			@Override
-			public boolean accept(File pathname) {
-				if(pathname.isDirectory())
-					return true;
-				else
-					return false;
-			}
-		});
-		
-		for(File file : classFiles)
-		{
-			exec.execute(new ClassParserRunnable(file, writer));
-		}
-		
-		for(File direc : innerDirectories)
-		{
-			final File directory = direc;
-			exec.execute(new Runnable() {
-				
-				@Override
-				public void run() {
-					recurse_files(directory);
+				} else {
+					foundOutputOption = true;
 				}
-			});
+			}
 		}
+		
+		return foundOutputOption;
+	}
+	
+	public static int optionLength(String option) {
+		if (option.equals("-output")) {
+			return 2;
+		}
+		return 0;
+	}
+	public static LanguageVersion languageVersion() {
+		return LanguageVersion.JAVA_1_5;
 	}
 }
