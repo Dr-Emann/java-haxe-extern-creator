@@ -4,6 +4,15 @@ Haxe to Java Extern Creator
 A java program which parses folders of Java .class files, and exports a folder containing
 a list of [Haxe] (http://haxe.org/) external definitions. 
 
+Features
+-------------
+
+*	Uses javadoc, so you get meaningful variable names, and full code commenting
+*	Constant values are inlined
+*	Inner classes are renamed with an underscore, and placed into the same file
+	as the outer class (e.g. Outer.Inner becomes Outer_Inner)
+*	Multithreading means fast extern creation
+
 Useage
 -------------
 
