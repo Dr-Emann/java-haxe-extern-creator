@@ -3,20 +3,61 @@ package net.zdremann;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.sun.javadoc.*;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.DocErrorReporter;
+import com.sun.javadoc.Doclet;
+import com.sun.javadoc.LanguageVersion;
+import com.sun.javadoc.PackageDoc;
+import com.sun.javadoc.RootDoc;
 
 public class Main extends Doclet {
-	
-	private static File outputDir;
-	
+
+	private static File outputDir = null;
+
+	public static void main(String[] args) {
+		String source = null;
+		String packages = null;
+		String output = null;
+		for(int i=0; i<args.length; i++)
+		{
+			if(args[i].equals("-source"))
+			{
+				if(i > args.length - 2)
+				{
+					throw new IllegalArgumentException("-source requires a source directory to be specified");
+				}
+				source = args[++i];
+			}
+			else if(args[i].equals("-output"))
+			{
+				if(i > args.length - 2)
+				{
+					throw new IllegalArgumentException("-output requires an ouput directory to be specified");
+				}
+				output = args[++i];
+			}
+			else if(args[i].equals("-packages"))
+			{
+				if(i > args.length -2)
+				{
+					throw new IllegalArgumentException("-packages requires a list of packages, seperated by colons");
+				}
+				packages = args[++i];
+			}
+		}
+		if(source == null || packages == null || output == null)
+		{
+			throw new IllegalArgumentException("Usage: -source (source-dir) -output (output-dir) -packages (package-list)");
+		}
+		com.sun.tools.javadoc.Main.execute(new String[]{"-doclet",  Main.class.getName(), "-sourcepath", source, "-subpackages", packages, "-output", output});
+		System.exit(0);
+	}
+
 	public static boolean start(RootDoc root)
 	{
 		readOptions(root.options());
@@ -29,29 +70,38 @@ public class Main extends Doclet {
 				continue;
 			}
 			PackageDoc pack = clazz.containingPackage();
-			String packs = pack.name().replace('.', File.separatorChar);
-			File output = new File(outputDir, packs);
-			output.mkdirs();
-			if(!output.exists())
-			{
-				throw new RuntimeException("Could not create required directory in output directory");
-			}
-			output = new File(output, clazz.name()+".hx");
-			OutputStream outputStream = null;
-			try
-			{
-				outputStream = new BufferedOutputStream(new FileOutputStream(output));
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException(e.getMessage());
-			}
 			
+			OutputStream outputStream;
+			
+			if(outputDir == null)
+			{
+				outputStream = System.out;
+			}
+			else
+			{
+				String packs = pack.name().replace('.', File.separatorChar);
+				File output = new File(outputDir, packs);
+				output.mkdirs();
+				if(!output.exists())
+				{
+					throw new RuntimeException("Could not create required directory in output directory");
+				}
+				output = new File(output, clazz.name()+".hx");
+				//System.out.println("Generating class: " + output.getAbsolutePath() + " (" + clazz.methods().length + ")");
+				try
+				{
+					outputStream = new BufferedOutputStream(new FileOutputStream(output));
+				}
+				catch (Exception e)
+				{
+					throw new RuntimeException(e.getMessage());
+				}
+			}
 			
 			ClassWriterCallable cwc = new ClassWriterCallable(clazz, outputStream);
-			todo.add(ClassWriterCallable.service.submit(cwc));
+			todo.add(ClassWriterCallable.writerService.submit(cwc));
 		}
-		
+
 		for(Future<Void> future : todo)
 		{
 			try{
@@ -61,10 +111,11 @@ public class Main extends Doclet {
 				e.printStackTrace();
 			}
 		}
-		
+
+		System.out.println("Finished");
 		return true;
 	}
-	
+
 	private static void readOptions(String[][] options) {
 		for (int i = 0; i < options.length; i++) {
 			String[] opt = options[i];
@@ -73,7 +124,7 @@ public class Main extends Doclet {
 			}
 		}
 	}
-	
+
 	public static boolean validOptions(String options[][], DocErrorReporter reporter) {
 		boolean foundOutputOption = false;
 		for (int i = 0; i < options.length; i++) {
@@ -87,10 +138,10 @@ public class Main extends Doclet {
 				}
 			}
 		}
-		
+
 		return foundOutputOption;
 	}
-	
+
 	public static int optionLength(String option) {
 		if (option.equals("-output")) {
 			return 2;

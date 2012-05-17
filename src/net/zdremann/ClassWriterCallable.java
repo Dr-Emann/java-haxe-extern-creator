@@ -10,7 +10,8 @@ import com.sun.javadoc.ClassDoc;
 
 public class ClassWriterCallable implements Callable<Void> {
 
-	public static final ExecutorService service = Executors.newFixedThreadPool(16);
+	public static final ExecutorService writerService = Executors.newFixedThreadPool(16);
+	public static final ExecutorService formaterService = Executors.newFixedThreadPool(16);
 
 	public final PipedInputStream inputStream;
 	private final ClassFormaterCallable formater;
@@ -28,7 +29,7 @@ public class ClassWriterCallable implements Callable<Void> {
 		try
 		{
 			inputStream.connect(formater.outputStream);
-			service.submit(formater);
+			formaterService.submit(formater);
 			byte[] buffer = new byte[512];
 			int length;
 			while((length = inputStream.read(buffer))>0)

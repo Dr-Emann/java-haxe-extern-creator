@@ -7,9 +7,13 @@ a list of [Haxe] (http://haxe.org/) external definitions.
 Useage
 -------------
 
-The program can be run using `javadoc -doclet net.zdremann.Main -docletpath (path-to-class-files) (input-java-files) -output (output-directory)`
+This program must be built to include tools.jar, which can be found at *jdk-loc/lib/tools.jar*
 
-This will create matching haxe externs in output-directory for each java class in input-java-files
+The program can be run using 
+`java -jar (jar-file) -source (source-dir) -output (output-dir) -packages (package-list)`
+
+This will create matching haxe externs in (output-dir) for each java class in
+the specified packages, looking in (source-dir)
 
 > **Note:** the output directory will be structured based on the class
 > hierarchy of the java files input. Also, all existing files that match classes in the input
