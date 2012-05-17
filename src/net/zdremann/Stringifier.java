@@ -36,17 +36,25 @@ public class Stringifier {
 	public static String makeComment(String rawComment)
 	{
 		String[] lines = rawComment.split("\r\n|\n");
+		StringBuilder s = new StringBuilder();
 		if(rawComment.length() == 0)
 		{
 			return "";
 		}
-		StringBuilder s = new StringBuilder();
-		s.append(String.format("/**%n"));
-		for(String line : lines)
+		else if(lines.length == 1)
 		{
-			s.append(String.format(" *%s%n", line));
+			s.append(String.format("/** %s */%n", lines[0]));
 		}
-		s.append(String.format(" */%n"));
+		else
+		{
+			s.append(String.format("/**%n"));
+			for(String line : lines)
+			{
+				s.append(String.format(" *%s%n", line));
+			}
+			s.append(String.format(" */%n"));
+		}
+		
 		return s.toString();
 	}
 	
