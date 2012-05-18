@@ -5,12 +5,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.sun.javadoc.*;
+import com.sun.javadoc.ParameterizedType;
+import com.sun.javadoc.Type;
 
 public class Stringifier {
 	public static final String DYNAMIC_NAME = "Dynamic";
 	
-	
+	public static final Map<String, String> RESERVED_NAMES = _BUILD_RESERVED_NAMES();
 	public static final Map<String, String> TYPE_MAP= _BUILD_MAP();
 	
 	private static Map<String,String> _BUILD_MAP()
@@ -33,6 +34,15 @@ public class Stringifier {
 		return map;
 	}
 	
+	private static Map<String, String> _BUILD_RESERVED_NAMES() {
+		Map<String, String> map = new HashMap<>();
+		
+		map.put("callback", "callback_");
+		map.put("in", "in_");
+		
+		return map;
+	}
+
 	public static String makeComment(String rawComment)
 	{
 		String[] lines = rawComment.split("\r\n|\n");
@@ -56,6 +66,18 @@ public class Stringifier {
 		}
 		
 		return s.toString();
+	}
+	
+	public static String reservedNameAvoid(String name)
+	{
+		if(RESERVED_NAMES.containsKey(name))
+		{
+			return RESERVED_NAMES.get(name);
+		}
+		else
+		{
+			return name;
+		}
 	}
 	
 	public static String typeToString(Type type)

@@ -323,21 +323,10 @@ public class ClassFormaterCallable implements Callable<Void> {
 		else
 			modifierString += "private ";
 		
-		if(constValue == null && !(constValue instanceof Integer || constValue instanceof String || constValue instanceof Float || constValue instanceof Byte))
+		if(constValue == null)
 			s = String.format("%svar %s:%s;", modifierString, field.name(), Stringifier.typeToString(field.type()));
 		else
-		{
-			String formatString;
-			if(constValue instanceof String)
-			{
-				formatString = "%svar %s:%s = \"%s\";";
-			}
-			else
-			{
-				formatString = "%svar %s:%s = %d;";
-			}
-			s = String.format(formatString, modifierString, field.name(), Stringifier.typeToString(field.type()), constValue);
-		}
+			s = String.format("%svar %s:%s = %s;", modifierString, field.name(), Stringifier.typeToString(field.type()), constValue.toString());
 			
 		
 		return s;
