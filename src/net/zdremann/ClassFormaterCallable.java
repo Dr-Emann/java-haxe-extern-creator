@@ -351,7 +351,7 @@ public class ClassFormaterCallable implements Callable<Void> {
 		String parameterString = "";
 		for(Parameter param : constructor.parameters())
 		{
-			parameterString += String.format("%s:%s,", param.name(), Stringifier.typeToString(param.type()));
+			parameterString += String.format("%s:%s,", Stringifier.reservedNameAvoid(param.name()), Stringifier.typeToString(param.type()));
 		}
 		if(constructor.parameters().length>0)
 			parameterString = parameterString.substring(0, parameterString.length()-1);
