@@ -60,7 +60,7 @@ public class ClassFormaterCallable implements Callable<Void> {
 			outputStream.write(String.format("@:final%n").getBytes());
 		}
 		
-		if(clazz.isOrdinaryClass())
+		if(clazz.isClass())
 		{
 			outputStream.write(Stringifier.makeComment(clazz.getRawCommentText()).getBytes());
 			
