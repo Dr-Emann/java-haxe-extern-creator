@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.ParameterizedType;
 import com.sun.javadoc.Type;
 
@@ -25,7 +26,7 @@ public class Stringifier {
 		map.put("short", "Int16");
 		map.put("byte", "Int8");
 		map.put("float", "Float");
-		map.put("double", "Double");
+		map.put("double", "Float");
 		map.put("long", "haxe.Int64");
 		map.put("int", "Int");
 		map.put("boolean", "Bool");
@@ -38,7 +39,8 @@ public class Stringifier {
 		Map<String, String> map = new HashMap<>();
 		
 		map.put("callback", "callback_");
-		map.put("in", "in_");
+		map.put("in", "_in");
+		map.put("cast", "cast_");
 		
 		return map;
 	}
@@ -76,45 +78,59 @@ public class Stringifier {
 		}
 		else
 		{
-			return name;
+			return name.replace('$', '_');
 		}
 	}
 	
 	public static String typeToString(Type type)
 	{
 		String typeString = "%s";
+		String name;
 		if(type.dimension()!="")
 		{
 			int depth = type.dimension().length()/2;
 			for(int i=0;i<depth;i++)
 			{
-				typeString = String.format(typeString, "Array<%s>");
+				typeString = String.format(typeString, "java.NativeArray<%s>");
 			}
 		}
 		if(TYPE_MAP.containsKey(type.qualifiedTypeName()))
-			typeString = String.format(typeString, TYPE_MAP.get(type.qualifiedTypeName()));
-		else
-			typeString = String.format(typeString, type.qualifiedTypeName());
-		
-		Pattern p = Pattern.compile("\\.[A-Z]");
-		Matcher m = p.matcher(typeString);
-		
-		m.find();
-		while(m.find())
 		{
-			typeString = typeString.substring(0, m.start()) + "_" + typeString.substring(m.start()+1);
+			name = TYPE_MAP.get(type.qualifiedTypeName());
+		}
+		else
+		{
+			String packs = type.qualifiedTypeName();
+			packs = packs.substring(0, packs.length()-type.typeName().length());
+			name = packs + type.typeName().replace('.', '_');
 		}
 		
 		if(type.asParameterizedType() != null)
 		{
-			typeString += "<";
+			name += "<";
 			ParameterizedType t = type.asParameterizedType();
 			for(Type paramType : t.typeArguments())
 			{
-				typeString += typeToString(paramType) + ",";
+				name += typeToString(paramType) + ",";
 			}
-			typeString = typeString.substring(0, typeString.length()-1) + ">";
+			if(t.typeArguments().length == 0)
+			{
+				ClassDoc clazz = type.asClassDoc();
+				if(clazz == null)
+					name += DYNAMIC_NAME + ",";
+				else
+				{
+					int numParams = clazz.typeParameters().length;
+					for(int i=0;i<numParams;i++)
+					{
+						name += DYNAMIC_NAME + ",";
+					}
+				}
+			}
+			name = name.substring(0, name.length()-1) + ">";
 		}
+		
+		typeString = String.format(typeString, name);
 		
 		return typeString;
 	}

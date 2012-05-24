@@ -49,13 +49,16 @@ public class ClassFormaterCallable implements Callable<Void> {
 	
 	private void writeClassToStream(ClassDoc clazz, OutputStream outputStream) throws Exception
 	{
-		if(clazz.containingClass() == null)
-		{
-			PackageDoc pack = clazz.containingPackage();
-			outputStream.write(String.format("package %s;%n%n", pack.name()).getBytes());
-		}
+		PackageDoc pack = clazz.containingPackage();
+		outputStream.write(String.format("package %s;%n%n", pack.name()).getBytes());
+		outputStream.write(String.format("import java.StdTypes;%n").getBytes());
 		
 		outputStream.write(String.format("@:native(\"%s\")%n",clazz.qualifiedName()).getBytes());
+		
+		if(clazz.isFinal())
+		{
+			outputStream.write(String.format("@:final%n").getBytes());
+		}
 		
 		if(clazz.isOrdinaryClass())
 		{
@@ -63,20 +66,21 @@ public class ClassFormaterCallable implements Callable<Void> {
 			
 			String extendsAndImplements = "";
 			boolean doesExtend = false;
-			if(clazz.superclass() != null)
+			if(clazz.superclassType() != null)
 			{
-				if(!Stringifier.typeToString(clazz.superclass()).equals(Stringifier.DYNAMIC_NAME))
+				String superClassName = Stringifier.typeToString(clazz.superclassType());
+				if(!superClassName.equals(Stringifier.DYNAMIC_NAME))
 				{
-					extendsAndImplements += String.format("extends %s ", Stringifier.typeToString(clazz.superclass()));
+					extendsAndImplements += String.format("extends %s ", superClassName);
 					doesExtend = true;
 				}
 			}
 			
-			if(clazz.interfaces().length > 0)
+			if(clazz.interfaceTypes().length > 0)
 			{
 				if(doesExtend)
 					extendsAndImplements += ", ";
-				for(ClassDoc currentInterface : clazz.interfaces())
+				for(Type currentInterface : clazz.interfaceTypes())
 				{
 					extendsAndImplements += String.format("implements %s,", Stringifier.typeToString(currentInterface));
 				}
@@ -84,8 +88,7 @@ public class ClassFormaterCallable implements Callable<Void> {
 				
 			}
 			
-			outputStream.write(String.format("extern class %s %s", clazz.name().replace('.', '_'), extendsAndImplements).getBytes());
-
+			String className = clazz.name().replace('.', '_');
 			if(clazz.typeParameters().length > 0)
 			{
 				String parameterTypes = "";
@@ -102,8 +105,11 @@ public class ClassFormaterCallable implements Callable<Void> {
 					parameterTypes += type.qualifiedTypeName()+ extendedString+",";
 				}
 				parameterTypes = parameterTypes.substring(0, parameterTypes.length()-1);
-				outputStream.write(String.format("<%s>", parameterTypes).getBytes());
+				className += String.format("<%s>", parameterTypes);
 			}
+			
+			outputStream.write(String.format("extern class %s %s", className, extendsAndImplements).getBytes());
+
 			outputStream.write(String.format("%n{%n").getBytes());
 			
 			// Fields
@@ -116,11 +122,6 @@ public class ClassFormaterCallable implements Callable<Void> {
 			outputStream.write(buildMethods(clazz.methods()).toString().getBytes());
 			
 			outputStream.write(String.format("%n}%n").getBytes());
-			
-			for (ClassDoc innerClass : clazz.innerClasses())
-			{
-				writeClassToStream(innerClass, outputStream);
-			}
 		}
 		else if(clazz.isEnum())
 		{
@@ -131,9 +132,9 @@ public class ClassFormaterCallable implements Callable<Void> {
 			for(FieldDoc enumConst : clazz.enumConstants())
 			{
 				consts += Stringifier.makeComment(enumConst.getRawCommentText());
-				consts += "\t" + enumConst.name() + ",\n";
+				consts += "\t" + enumConst.name() + ";\n";
 			}
-			consts = consts.substring(0, consts.length()-2);
+			consts = consts.substring(0, consts.length()-1);
 			outputStream.write(consts.getBytes());
 			outputStream.write(String.format("%n}%n").getBytes());
 		}
@@ -323,10 +324,21 @@ public class ClassFormaterCallable implements Callable<Void> {
 		else
 			modifierString += "private ";
 		
-		if(constValue == null)
-			s = String.format("%svar %s:%s;", modifierString, field.name(), Stringifier.typeToString(field.type()));
+		if(constValue == null && !(constValue instanceof Integer || constValue instanceof String || constValue instanceof Float || constValue instanceof Byte))
+			s = String.format("%svar %s:%s;", modifierString, Stringifier.reservedNameAvoid(field.name()), Stringifier.typeToString(field.type()));
 		else
-			s = String.format("%svar %s:%s = %s;", modifierString, field.name(), Stringifier.typeToString(field.type()), constValue.toString());
+		{
+			String formatString;
+			if(constValue instanceof String)
+			{
+				formatString = "%svar %s:%s = \"%s\";";
+			}
+			else
+			{
+				formatString = "%svar %s:%s = %d;";
+			}
+			s = String.format(formatString, modifierString, Stringifier.reservedNameAvoid(field.name()), Stringifier.typeToString(field.type()), constValue);
+		}
 			
 		
 		return s;
@@ -353,7 +365,7 @@ public class ClassFormaterCallable implements Callable<Void> {
 			else
 				modifierString += "private ";
 			
-			s = String.format("%sfunction new(%s);", modifierString, parameterString);
+			s = String.format("%sfunction new(%s):Void;", modifierString, parameterString);
 			break;
 		case OVERLOADEDv3:
 		case OVERLOADEDv2:
@@ -372,7 +384,7 @@ public class ClassFormaterCallable implements Callable<Void> {
 		String parameterString = "";
 		for(Parameter param : method.parameters())
 		{
-			parameterString += String.format("%s:%s,", param.name(), Stringifier.typeToString(param.type()));
+			parameterString += String.format("%s:%s,", Stringifier.reservedNameAvoid(param.name()), Stringifier.typeToString(param.type()));
 		}
 		if(method.parameters().length>0)
 			parameterString = parameterString.substring(0, parameterString.length()-1);
@@ -392,13 +404,13 @@ public class ClassFormaterCallable implements Callable<Void> {
 			else
 				modifierString += "private ";
 			
-			String functionName = method.name();
+			String functionName = Stringifier.reservedNameAvoid(method.name());
 			if(method.typeParameters().length > 0)
 			{
 				functionName += "<";
 				for(TypeVariable typeVar : method.typeParameters())
 				{
-					functionName += typeVar.simpleTypeName() + ",";
+					functionName += typeVar.typeName() + ",";
 				}
 				functionName = functionName.substring(0, functionName.length()-1) + ">";
 			}

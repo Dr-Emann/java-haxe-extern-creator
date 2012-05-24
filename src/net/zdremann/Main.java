@@ -2,7 +2,9 @@ package net.zdremann;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,18 +59,32 @@ public class Main extends Doclet {
 		com.sun.tools.javadoc.Main.execute(new String[]{"-doclet",  Main.class.getName(), "-sourcepath", source, "-subpackages", packages, "-output", output});
 		System.exit(0);
 	}
+	
 
 	public static boolean start(RootDoc root)
 	{
 		readOptions(root.options());
 		ClassDoc[] classes = root.classes();
 		List<Future<Void>> todo = new ArrayList<>();
+		
+		OutputStream importHx = null;
+		try
+		{
+			outputDir.mkdirs();
+			importHx = new BufferedOutputStream(new FileOutputStream(new File(outputDir, "AllThings.hx")));
+			importHx.write(String.format("package foobarsky.best.deals;%n%n").getBytes());
+		}
+		catch (FileNotFoundException fnfe)
+		{
+			fnfe.printStackTrace();
+		}
+		catch (IOException ioe)
+		{
+			ioe.printStackTrace();
+		}
+		
 		for(ClassDoc clazz : classes)
 		{
-			if(clazz.containingClass()!= null)
-			{
-				continue;
-			}
 			PackageDoc pack = clazz.containingPackage();
 			
 			OutputStream outputStream;
@@ -86,7 +102,7 @@ public class Main extends Doclet {
 				{
 					throw new RuntimeException("Could not create required directory in output directory");
 				}
-				output = new File(output, clazz.name()+".hx");
+				output = new File(output, clazz.name().replace('.', '_')+".hx");
 				//System.out.println("Generating class: " + output.getAbsolutePath() + " (" + clazz.methods().length + ")");
 				try
 				{
@@ -100,6 +116,26 @@ public class Main extends Doclet {
 			
 			ClassWriterCallable cwc = new ClassWriterCallable(clazz, outputStream);
 			todo.add(ClassWriterCallable.writerService.submit(cwc));
+			try
+			{
+				String importString = String.format("import %s.%s;%n", pack.name(), clazz.name().replace('.', '_'));
+				importHx.write(importString.getBytes());
+				
+			}
+			catch (Exception e)
+			{
+				
+			}
+		}
+		try
+		{
+			importHx.write("class AllThings{}".getBytes());
+			importHx.flush();
+			importHx.close();
+		}
+		catch(Exception e)
+		{
+			
 		}
 
 		for(Future<Void> future : todo)
