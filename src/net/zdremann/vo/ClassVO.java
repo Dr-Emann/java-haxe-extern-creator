@@ -14,6 +14,7 @@ public class ClassVO {
 	public String[] classParameterNames;
 	public String[] classParameterTypes;
 	public String className;
+    public String haxeClassName;
 	public String classPackage;
 	public String superClass;
 	public String[] interfaces;
@@ -38,6 +39,16 @@ public class ClassVO {
 		int packageNameDivider = inStr.lastIndexOf('.', searchStartPos);
 		
 		this.className = inStr.substring(packageNameDivider+1);
+        String firstChar = this.className.substring(0,1);
+        if(firstChar.toUpperCase() != this.className.substring(0,1))
+        {
+            this.haxeClassName = firstChar.toUpperCase() + this.className.substring(1);
+        }
+        else
+        {
+            this.haxeClassName = this.className;
+        }
+
 		if(packageNameDivider == -1)
 			this.classPackage = "";
 		else
@@ -71,8 +82,8 @@ public class ClassVO {
 			Pattern p = Pattern.compile("(\\w+)::?([LT][\\w/<>;]+;)");
 			Matcher m = p.matcher(genericParameters);
 			
-			ArrayList<String> names = new ArrayList<>();
-			ArrayList<String> types = new ArrayList<>();
+			ArrayList<String> names = new ArrayList<String>();
+			ArrayList<String> types = new ArrayList<String>();
 			
 			if(m.find())
 			{
@@ -113,7 +124,7 @@ public class ClassVO {
 	 */
 	public static String[] typeString(String inStr)
 	{
-		ArrayList<String> list = new ArrayList<>();
+		ArrayList<String> list = new ArrayList<String>();
 		
 		int pos = 0;
 		

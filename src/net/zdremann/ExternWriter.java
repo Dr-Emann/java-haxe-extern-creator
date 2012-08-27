@@ -22,7 +22,7 @@ import net.zdremann.vo.Method;
 public class ExternWriter {
 	private final static HashMap<String, String> TYPE_EQUIVALENTS = initTypeEquivalents();
 	private static HashMap<String, String> initTypeEquivalents() {
-		HashMap<String, String> value = new HashMap<>();
+		HashMap<String, String> value = new HashMap<String, String>();
 		value.put("java.lang.String", "String");
 		value.put("java.lang.Object", "Dynamic");
 		value.put("C", "Char16");
@@ -30,12 +30,14 @@ public class ExternWriter {
 		value.put("S", "Int16");
 		value.put("B", "Int8");
 		value.put("F", "Float");
-		value.put("D", "Double");
+		value.put("D", "java.lang.Number.Double");
 		value.put("J", "haxe.Int64");
 		value.put("V", "Void");
 		value.put("Z", "Bool");
 		return value;
 	}
+
+    private static HashMap<String, String> NATIVE_MAPPING = new HashMap<String, String>();
 	
 	private final File baseDestination;
 	
@@ -61,7 +63,7 @@ public class ExternWriter {
 			if(destination.mkdirs() == false)
 				throw new IOException("Could not create directory for class at " + destination.getCanonicalPath());
 		
-		destination = new File(destination, theClass.className + ".hx");
+		destination = new File(destination, theClass.haxeClassName + ".hx");
 		String outputString = buildOutputString(theClass);
 		Writer writer = null;
 		try
@@ -88,6 +90,7 @@ public class ExternWriter {
 		
 		StringBuilder classParameters = new StringBuilder();
 		String classOrInterface = (theClass.isInterface())?"interface":"class";
+        if(!theClass.className.equals(theClass.haxeClassName)) builder.append(buildNativeMetadata(theClass));
 		if(theClass.classParameterNames != null && theClass.classParameterNames.length > 0)
 		{
 			for(int i=0;i<theClass.classParameterNames.length; i++)
@@ -99,11 +102,11 @@ public class ExternWriter {
 			}
 			classParameters.deleteCharAt(classParameters.length()-1);
 			
-			builder.append(String.format("extern %s %s<%s> %s%n", classOrInterface, theClass.className, classParameters.toString(), buildExtensions(theClass)));
+			builder.append(String.format("extern %s %s<%s> %s%n", classOrInterface, theClass.haxeClassName, classParameters.toString(), buildExtensions(theClass)));
 		}
 		else
 		{
-			builder.append(String.format("extern %s %s %s%n", classOrInterface, theClass.className, buildExtensions(theClass)));
+			builder.append(String.format("extern %s %s %s%n", classOrInterface, theClass.haxeClassName, buildExtensions(theClass)));
 		}
 		
 		builder.append(String.format("{%n"));
@@ -119,6 +122,14 @@ public class ExternWriter {
 		builder.append(String.format("%n}"));
 		return builder.toString();
 	}
+
+    private String buildNativeMetadata(ClassVO theClass)
+    {
+        String nativePackageAndClass = String.format("%s.%s", theClass.classPackage, theClass.className);
+        String haxePackageAndClass = String.format("%s.%s", theClass.classPackage, theClass.haxeClassName);
+        NATIVE_MAPPING.put(nativePackageAndClass, haxePackageAndClass);
+        return String.format("@native('%s') ", nativePackageAndClass);
+    }
 	
 	public StringBuilder buildFields(final ClassVO theClass)
 	{
@@ -129,7 +140,8 @@ public class ExternWriter {
 			String accessString = field.accessString();
 			String name = field.getName();
 			String type = getType(field.getType());
-			builder.append(String.format("\t%s var %s:%s;%n",accessString, name, type));
+            if(name.startsWith("class$")) continue;
+			builder.append(String.format("\t%s var %s:%s;%n", accessString, name, type));
 		}
 		
 		return builder;
@@ -140,13 +152,16 @@ public class ExternWriter {
 	{
 		final StringBuilder builder = new StringBuilder();
 		final String superClass = getType(theClass.superClass);
+        boolean extended = false;
 		if( !superClass.equals("Dynamic"))
 		{
 			builder.append(" extends " + superClass);
+            extended = true;
 		}
 		if(theClass.interfaces != null && theClass.interfaces.length > 0)
 		{
-			builder.append(" implements ");
+			if(extended) builder.append(",");
+            builder.append(" implements ");
 			for(String curInterface : theClass.interfaces)
 			{
 				String interfaceStr = getType(curInterface);
@@ -161,7 +176,7 @@ public class ExternWriter {
 	public StringBuilder buildMethods(final ClassVO theClass)
 	{
 		StringBuilder builder = new StringBuilder();
-		HashMap<String, List<Method>> existingMethods = new HashMap<>();
+		HashMap<String, List<Method>> existingMethods = new HashMap<String, List<Method>>();
 		for(int i=0;i<theClass.methods.length;i++)
 		{
 			Method method = theClass.methods[i];
@@ -174,7 +189,7 @@ public class ExternWriter {
 			
 			if(!existingMethods.containsKey(method.getName()))
 			{
-				methodsNamed = new ArrayList<>();
+				methodsNamed = new ArrayList<Method>();
 				existingMethods.put(method.getName(), methodsNamed);
 			}
 			else
@@ -252,18 +267,28 @@ public class ExternWriter {
 		
 		return builder;
 	}
-	
+
+
+    // TODO this does not handle the case where a type name that needs to be rempapped has not yet
+    // been encountered by the the ClassVO which has some code for handling remapping illegal type names
+    // e.g. Java classes beginning with lowercase.
 	private static String getType(String typeStr)
 	{
-		StringBuilder returnStr;
+        StringBuilder returnStr;
+
 		if(TYPE_EQUIVALENTS.containsKey(typeStr))
 		{
 			returnStr = new StringBuilder(TYPE_EQUIVALENTS.get(typeStr));
 			return returnStr.toString();
 		}
+        else if(NATIVE_MAPPING.containsKey(typeStr))
+        {
+            returnStr = new StringBuilder(NATIVE_MAPPING.get(typeStr));
+            return returnStr.toString();
+        }
 		else
 		{
-			returnStr = new StringBuilder(typeStr);
+            returnStr = new StringBuilder(typeStr);
 		}
 		
 		Pattern p = Pattern.compile("<([^<>]+)>");
@@ -275,10 +300,52 @@ public class ExternWriter {
 			{
 				returnStr.replace(m.start(1), m.end(1), TYPE_EQUIVALENTS.get(m.group(1)));
 			}
+            else if(NATIVE_MAPPING.containsKey(m.group(1)))
+            {
+                returnStr.replace(m.start(1), m.end(1), NATIVE_MAPPING.get(m.group(1)));
+            }
 		}
 		return returnStr.toString();
 	}
-	
+    /*
+    private static String fixIllegalType(String typeName)
+    {
+        String originalClassName;
+        String legalClassName;
+        String classPackage;
+
+        int searchStartPos = typeName.indexOf('<'); // should always equal -1.
+        if(searchStartPos == -1)
+            searchStartPos = typeName.length()-1;
+
+        int packageNameDivider = typeName.lastIndexOf('.', searchStartPos);
+
+        originalClassName = typeName.substring(packageNameDivider+1,searchStartPos);
+        String firstChar = originalClassName.substring(0,1);
+
+        if(packageNameDivider == -1)
+            classPackage = "";
+        else
+            classPackage = typeName.substring(0, packageNameDivider).toLowerCase();
+
+        String haxePackageAndClass;
+        String nativePackageAndClass;
+
+        if(firstChar.toUpperCase() != originalClassName.substring(0,1))
+        {
+
+            legalClassName = firstChar.toUpperCase() + originalClassName.substring(1);
+            nativePackageAndClass = String.format("%s.%s", classPackage, originalClassName);
+            haxePackageAndClass = String.format("%s.%s", classPackage, legalClassName);
+            NATIVE_MAPPING.put(nativePackageAndClass, haxePackageAndClass);
+        }
+        else
+        {
+            return typeName;
+        }
+        return legalClassName;
+    }
+	*/
 	private static String join(Object[] arr, String delimeter)
 	{
 		if(arr==null || arr.length<1)

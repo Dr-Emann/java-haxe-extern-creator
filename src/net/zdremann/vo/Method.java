@@ -60,8 +60,8 @@ public class Method implements Accessable, Comparable<Method> {
 			Pattern p = Pattern.compile("(\\w+)::?([LT][\\w/<>;]+;)");
 			Matcher m = p.matcher(genericParameters);
 			
-			ArrayList<String> names = new ArrayList<>();
-			ArrayList<String> types = new ArrayList<>();
+			ArrayList<String> names = new ArrayList<String>();
+			ArrayList<String> types = new ArrayList<String>();
 			
 			if(m.find())
 			{

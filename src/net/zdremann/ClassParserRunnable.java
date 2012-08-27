@@ -55,7 +55,9 @@ public class ClassParserRunnable implements Runnable {
 		catch(ClassFormatException cfe)
 		{
 			System.out.println("Class file is not valid");
-			return;
+            //System.out.println("Parsing: " + source.toString());
+			cfe.printStackTrace();
+            return;
 		}
 		
 		final ClassVO data = parser.parseClass();

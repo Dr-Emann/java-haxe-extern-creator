@@ -87,17 +87,23 @@ public class ClassFileParser {
 		vo.accessFlags = classFile.getAccessFlags().getValue();
 		
 		AttributeInfo[] attrs = classFile.getAttributes();
-		for(AttributeInfo info : attrs)
-		{
-			switch(getCString(cpool, info.getNameIndex()))
-			{
-			case "Signature":
-				AttributeExtended extendedInfo = (AttributeExtended) info;
-				byte[] sigIndexRaw = extendedInfo.getRawData();
-				int sigIndex = ((sigIndexRaw[0]&0xff)<<8)+(sigIndexRaw[1]&0xff);
-				vo.fromSignature(getCString(cpool, sigIndex));
-			}
-		}
+
+        if(attrs != null)
+        {
+            for(AttributeInfo info : attrs)
+            {
+                String nameIndex = getCString(cpool, info.getNameIndex());
+                switch(NameIndex.valueOf(nameIndex))
+                {
+                    case Signature:
+                        AttributeExtended extendedInfo = (AttributeExtended) info;
+                        byte[] sigIndexRaw = extendedInfo.getRawData();
+                        int sigIndex = ((sigIndexRaw[0]&0xff)<<8)+(sigIndexRaw[1]&0xff);
+                        vo.fromSignature(getCString(cpool, sigIndex));
+                }
+            }
+        }
+
 		
 		vo.fields = new Field[classFile.getFieldCount().getValue()];
 		FieldInfo[] fields = classFile.getFields();
@@ -111,9 +117,10 @@ public class ClassFileParser {
 			
 			for(int j=0;j<fields[i].getAttributesCount(); j++)
 			{
-				switch(getCString(cpool, fields[i].getAttribute(j).getNameIndex()))
+				String nameIndex = getCString(cpool, fields[i].getAttribute(j).getNameIndex());
+                switch(NameIndex.valueOf(nameIndex))
 				{
-				case "Signature":
+				case Signature:
 					AttributeExtended extendedInfo = (AttributeExtended) fields[i].getAttribute(j);
 					byte[] sigIndexRaw = extendedInfo.getRawData();
 					int sigIndex = ((sigIndexRaw[0]&0xff)<<8)+(sigIndexRaw[1]&0xff);
@@ -136,18 +143,20 @@ public class ClassFileParser {
 			cMethod.setDescriptor(getCString(cpool, cInfo.getDescriptorIndex()).replace('/', '.').replace('$', '_'));
 			for(int j=0; j<cInfo.getAttributesCount(); j++)
 			{
-				switch(getCString(cpool, cInfo.getAttribute(j).getNameIndex()))
+				String nameIndex =  getCString(cpool, cInfo.getAttribute(j).getNameIndex());
+
+                switch(NameIndex.valueOf(nameIndex))
 				{
-				case "Signature":
+				case Signature:
 					AttributeExtended extendedInfo = (AttributeExtended) cInfo.getAttribute(j);
 					byte[] sigIndexRaw = extendedInfo.getRawData();
 					int sigIndex = ((sigIndexRaw[0]&0xff)<<8)+(sigIndexRaw[1]&0xff);
 					cMethod.setDescriptor(getCString(cpool, sigIndex));
-				case "Code":
-				case "Deprecated":
-				case "RuntimeVisibleAnnotations":
-				case "Exceptions":
-				case "AnnotationDefault":
+				case Code:
+				case Deprecated:
+				case RuntimeVisibleAnnotations:
+				case Exceptions:
+				case AnnotationDefault:
 					break;
 				default:
 					System.out.println("Attribute found: " + getCString(cpool, cInfo.getAttribute(j).getNameIndex()));
