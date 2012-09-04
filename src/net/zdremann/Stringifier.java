@@ -22,6 +22,7 @@ public class Stringifier {
 		map.put("java.lang.Void", "Void");
 		map.put("?", DYNAMIC_NAME);
 		map.put("java.lang.Object", DYNAMIC_NAME);
+		map.put("java.lang.Error", "java.lang.Throwable.Error");
 		map.put("char", "Char16");
 		map.put("short", "Int16");
 		map.put("byte", "Int8");
@@ -36,9 +37,10 @@ public class Stringifier {
 	}
 	
 	private static Map<String, String> _BUILD_RESERVED_NAMES() {
-		Map<String, String> map = new HashMap<>();
+		Map<String, String> map = new HashMap<String, String>();
 		
 		map.put("callback", "callback_");
+		map.put("function", "function_");
 		map.put("in", "_in");
 		map.put("cast", "cast_");
 		
@@ -102,7 +104,9 @@ public class Stringifier {
 		{
 			String packs = type.qualifiedTypeName();
 			packs = packs.substring(0, packs.length()-type.typeName().length());
-			name = packs + type.typeName().replace('.', '_');
+			String typeName = type.typeName().replace('.', '_');
+			typeName = typeName.substring(0,1).toUpperCase() + typeName.substring(1);
+			name = packs + typeName;
 		}
 		
 		if(type.asParameterizedType() != null)
