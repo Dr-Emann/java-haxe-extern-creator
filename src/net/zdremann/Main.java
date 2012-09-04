@@ -25,6 +25,7 @@ public class Main extends Doclet {
 		String source = null;
 		String packages = null;
 		String output = null;
+        String a = null;
 		for(int i=0; i<args.length; i++)
 		{
 			if(args[i].equals("-source"))
@@ -65,7 +66,7 @@ public class Main extends Doclet {
 	{
 		readOptions(root.options());
 		ClassDoc[] classes = root.classes();
-		List<Future<Void>> todo = new ArrayList<>();
+		List<Future<Void>> todo = new ArrayList<Future<Void>>();
 		
 		OutputStream importHx = null;
 		try
