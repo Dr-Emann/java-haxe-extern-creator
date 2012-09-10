@@ -25,6 +25,7 @@ public class Main extends Doclet {
 		String source = null;
 		String packages = null;
 		String output = null;
+        String a = null;
 		for(int i=0; i<args.length; i++)
 		{
 			if(args[i].equals("-source"))
@@ -65,7 +66,7 @@ public class Main extends Doclet {
 	{
 		readOptions(root.options());
 		ClassDoc[] classes = root.classes();
-		List<Future<Void>> todo = new ArrayList<>();
+		List<Future<Void>> todo = new ArrayList<Future<Void>>();
 		
 		OutputStream importHx = null;
 		try
@@ -118,7 +119,9 @@ public class Main extends Doclet {
 			todo.add(ClassWriterCallable.writerService.submit(cwc));
 			try
 			{
-				String importString = String.format("import %s.%s;%n", pack.name(), clazz.name().replace('.', '_'));
+				String className = clazz.name().replace('.', '_');
+                className = className.substring(0,1).toUpperCase() + className.substring(1);
+                String importString = String.format("import %s.%s;%n", pack.name(), className);
 				importHx.write(importString.getBytes());
 				
 			}
