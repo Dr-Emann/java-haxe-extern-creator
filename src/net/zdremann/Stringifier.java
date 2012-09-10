@@ -40,6 +40,7 @@ public class Stringifier {
         Map<String, String> map = new HashMap<String, String>();
 
         map.put("callback", "callback_");
+        map.put("function", "function_");
         map.put("in", "_in");
         map.put("cast", "cast_");
 

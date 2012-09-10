@@ -119,7 +119,9 @@ public class Main extends Doclet {
 			todo.add(ClassWriterCallable.writerService.submit(cwc));
 			try
 			{
-				String importString = String.format("import %s.%s;%n", pack.name(), clazz.name().replace('.', '_'));
+				String className = clazz.name().replace('.', '_');
+                className = className.substring(0,1).toUpperCase() + className.substring(1);
+                String importString = String.format("import %s.%s;%n", pack.name(), className);
 				importHx.write(importString.getBytes());
 				
 			}

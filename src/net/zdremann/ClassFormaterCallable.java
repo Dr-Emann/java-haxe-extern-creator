@@ -283,20 +283,61 @@ public class ClassFormaterCallable implements Callable<Void> {
                 {
                     goodMethods.add(method);
                 }
+
+
             }
+
+            List<MethodDoc> overload3 = new ArrayList<MethodDoc>();
+            List<MethodDoc> overload2 = new ArrayList<MethodDoc>();
+            List<MethodDoc> normal = new ArrayList<MethodDoc>();
+
+
             for(MethodDoc method : badMethods)
             {
                 s.append(Stringifier.makeComment(method.getRawCommentText()));
-                s.append(String.format("\t//%s%n", methodString(method, MethodStringType.OVERLOADEDv3)));
+                overload3.add(method);
             }
+
+
             for(int i=0;i<goodMethods.size();i++)
             {
                 MethodDoc method = goodMethods.get(i);
                 s.append(Stringifier.makeComment(method.getRawCommentText()));
                 if(i < goodMethods.size()-1)
-                    s.append(String.format("\t%s%n", methodString(method, MethodStringType.OVERLOADEDv2)));
+                {
+                    overload2.add(method);
+                }
                 else
-                    s.append(String.format("\t%s%n", methodString(method, MethodStringType.NORMAL)));
+                {
+                    normal.add(method);
+                }
+            }
+
+            for(MethodDoc method : overload2)
+            {
+                if(method.overriddenMethod() != null)
+                {
+                    // some overloaded methods also require overriding but their overridenMethod returns null
+                    // by identifying the methods marked as OVERLOADEDv2 that do require overrides we can
+                    // divert the NORMAL methods that do require an 'override' modifier
+                    s.append(String.format("\t//%s%n", methodString(method, MethodStringType.REQUIRES_OVERRIDE)));
+                    normal.remove(0);
+                }
+            }
+
+            for(MethodDoc method : normal)
+            {
+                s.append(String.format("\t%s%n", methodString(method, MethodStringType.NORMAL)));
+            }
+
+            for(MethodDoc method : overload2)
+            {
+                s.append(String.format("\t%s%n", methodString(method, MethodStringType.OVERLOADEDv2)));
+            }
+
+            for(MethodDoc method : overload3)
+            {
+                s.append(String.format("\t//%s%n", methodString(method, MethodStringType.OVERLOADEDv3)));
             }
 
         }
@@ -306,7 +347,7 @@ public class ClassFormaterCallable implements Callable<Void> {
 
     private static enum MethodStringType
     {
-        NORMAL, OVERLOADEDv2, OVERLOADEDv3
+        NORMAL, OVERLOADEDv2, OVERLOADEDv3, REQUIRES_OVERRIDE
     }
 
     private String fieldString(FieldDoc field) {
@@ -394,41 +435,61 @@ public class ClassFormaterCallable implements Callable<Void> {
         switch(type)
         {
             case NORMAL:
-                String modifierString = "";
-                if(method.overriddenMethod() != null)
-                {
-                    if(!method.overriddenMethod().containingClass().toString().equals("java.lang.Object"))
-                    {
-                        modifierString += "override ";
-                    }
-                }
-
-                if(method.isStatic())
-                    modifierString += "static ";
-
-                if(method.isPublic())
-                    modifierString += "public ";
-                else
-                    modifierString += "private ";
-
-                String functionName = Stringifier.reservedNameAvoid(method.name());
-                if(method.typeParameters().length > 0)
-                {
-                    functionName += "<";
-                    for(TypeVariable typeVar : method.typeParameters())
-                    {
-                        functionName += typeVar.typeName() + ",";
-                    }
-                    functionName = functionName.substring(0, functionName.length()-1) + ">";
-                }
-
-                s = String.format("%sfunction %s(%s):%s;", modifierString, functionName, parameterString, returnString);
+                s = createMethodString(method, parameterString, returnString);
                 break;
             case OVERLOADEDv3:
             case OVERLOADEDv2:
                 s = String.format("@:overload(function (%s):%s {})", parameterString, returnString);
                 break;
+            case REQUIRES_OVERRIDE:
+                s = createMethodString(method, parameterString, returnString, true);
+                break;
         }
+        return s;
+    }
+
+    private String createMethodString(MethodDoc method, String parameterString, String returnString)
+    {
+        if(method.overriddenMethod() != null)
+        {
+            if(!method.overriddenClass().toString().equals("java.lang.Object"))
+            {
+                return createMethodString(method, parameterString, returnString, true);
+            }
+        }
+        return createMethodString(method, parameterString, returnString, false);
+    }
+
+    private String createMethodString(MethodDoc method, String parameterString, String returnString, Boolean requiresOverride)
+    {
+        String s;
+        String modifierString = "";
+        if(requiresOverride)
+        {
+            modifierString += "override ";
+        }
+
+
+        if(method.isStatic())
+            modifierString += "static ";
+
+        if(method.isPublic())
+            modifierString += "public ";
+        else
+            modifierString += "private ";
+
+        String functionName = Stringifier.reservedNameAvoid(method.name());
+        if(method.typeParameters().length > 0)
+        {
+            functionName += "<";
+            for(TypeVariable typeVar : method.typeParameters())
+            {
+                functionName += typeVar.typeName() + ",";
+            }
+            functionName = functionName.substring(0, functionName.length()-1) + ">";
+        }
+
+        s = String.format("%sfunction %s(%s):%s;", modifierString, functionName, parameterString, returnString);
         return s;
     }
 
