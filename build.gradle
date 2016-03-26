@@ -22,3 +22,16 @@ sourceSets
         }        
     }
 }
+
+jar
+{
+	from configurations.runtime.asFileTree.files.collect { zipTree(it) }
+
+	manifest {
+		attributes(
+			"Implementation-Title": project.name,
+			"Implementation-Version": "1.0.0",			
+			"Main-Class": "net.zdremann.Main",
+		)		
+	}
+}
