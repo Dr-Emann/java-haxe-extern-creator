@@ -1,0 +1,37 @@
+apply plugin: 'java'
+
+repositories
+{
+	flatDir {
+        dirs 'lib'
+    }
+}
+
+dependencies
+{
+	compile name: 'jCFL-2.0.161'
+	compile files(org.gradle.internal.jvm.Jvm.current().toolsJar)
+  
+}
+
+sourceSets 
+{
+    main {
+        java {
+            srcDir 'src'
+        }        
+    }
+}
+
+jar
+{
+	from configurations.runtime.asFileTree.files.collect { zipTree(it) }
+
+	manifest {
+		attributes(
+			"Implementation-Title": project.name,
+			"Implementation-Version": "1.0.0",			
+			"Main-Class": "net.zdremann.Main",
+		)		
+	}
+}

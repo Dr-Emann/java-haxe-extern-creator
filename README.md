@@ -17,6 +17,8 @@ Useage
 -------------
 
 This program must be built to include tools.jar, which can be found at *jdk-loc/lib/tools.jar*
+or you can use the gradle wrapper using the commandline:
+`gradlew build`
 
 The program can be run using 
 `java -jar (jar-file) -source (source-dir) -output (output-dir) -packages (package-list)`
